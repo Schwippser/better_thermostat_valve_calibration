@@ -8,7 +8,7 @@
 
 Ein Home-Assistant-Blueprint, der automatisch eine **Ventil-Neukalibrierung** von Heizkörperthermostaten startet, wenn diese ihre Kalibrierung verloren haben.
 
-[![Öffne deine Home-Assistant-Instanz und zeige den Blueprint-Import-Dialog.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSchwippser%2Fbetter_thermostat_valve_calibration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fthermostat_calibration_watchdog.yaml)
+[![Öffne deine Home-Assistant-Instanz und zeige den Blueprint-Import-Dialog.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Schwippser/better_thermostat_valve_calibration/blob/main/thermostat_calibration_watchdog.yaml)
 
 > **Hinweis:** Dieser Blueprint funktioniert nur mit Thermostaten, die eine Ventilkalibrierung unterstützen und bei denen sich diese aus Home Assistant über einen Button starten lässt.
 
