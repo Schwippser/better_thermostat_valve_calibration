@@ -6,7 +6,7 @@
 
 A Home Assistant blueprint that automatically starts a **valve recalibration** of thermostatic radiator valves (TRVs) when they have lost their calibration.
 
-[![Open your Home Assistant instance and show the blueprint import dialog.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSchwippser%2Fbetter_thermostat_valve_calibration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fthermostat_calibration_watchdog.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Schwippser/better_thermostat_valve_calibration/blob/main/thermostat_calibration_watchdog.yaml)
 
 > **Note:** This blueprint only works with TRVs that support valve calibration and let you start it from Home Assistant through a button.
 
