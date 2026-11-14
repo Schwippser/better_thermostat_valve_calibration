@@ -1,0 +1,187 @@
+blueprint:
+  name: Thermostat Calibration Watchdog
+  description: >-
+    Watches one room (one climate entity) and automatically starts a valve
+    recalibration when the room stays too warm compared to the target
+    temperature for a long time and the temperature is not falling.
+    Made for TRVs that sometimes lose their calibration (e.g. Sonoff TRVZB),
+    especially in combination with Better Thermostat. Create one automation
+    per room. Works with any climate entity that provides the attributes
+    current_temperature and temperature, and any button that starts the
+    calibration. Optional push notification to a mobile app device.
+  domain: automation
+  author: Schwippser
+  source_url: https://github.com/Schwippser/better_thermostat_valve_calibration/blob/main/blueprints/automation/thermostat_calibration_watchdog.yaml
+  homeassistant:
+    min_version: 2024.10.0
+  input:
+    thermostat_section:
+      name: Thermostat
+      icon: mdi:radiator
+      collapsed: false
+      input:
+        climate_entity:
+          name: Climate entity (room)
+          description: >-
+            Entity that provides the actual temperature (attribute
+            current_temperature) and the target temperature (attribute
+            temperature). With Better Thermostat this is the Better
+            Thermostat entity of the room, which can group several TRVs.
+          selector:
+            entity:
+              domain: climate
+        calibration_buttons:
+          name: Calibration button(s)
+          description: >-
+            One or more buttons that start the valve calibration of the TRVs
+            in this room (e.g. button.thermostat_bad_1_valve_travel_calibration).
+            All selected buttons are pressed when a recalibration is needed.
+          selector:
+            entity:
+              domain: button
+              multiple: true
+    detection_section:
+      name: Detection
+      icon: mdi:thermometer-alert
+      collapsed: true
+      input:
+        threshold:
+          name: Temperature difference
+          description: >-
+            Recalibration is considered when the actual temperature is at
+            least this many Kelvin above the target temperature.
+          default: 2.0
+          selector:
+            number:
+              min: 0.5
+              max: 10
+              step: 0.1
+              unit_of_measurement: K
+              mode: box
+        over_temp_duration:
+          name: Minimum duration above threshold
+          description: >-
+            The difference must be present without interruption for this
+            long before the trend check starts.
+          default:
+            hours: 1
+            minutes: 0
+            seconds: 0
+          selector:
+            duration:
+        trend_wait:
+          name: Trend check delay
+          description: >-
+            After the duration above, the automation waits this long and
+            checks again whether the room is still too warm and the
+            temperature has not dropped. This filters out normal cooling
+            after the target temperature was lowered.
+          default:
+            hours: 0
+            minutes: 30
+            seconds: 0
+          selector:
+            duration:
+        trend_tolerance:
+          name: Trend tolerance
+          description: >-
+            Maximum drop in actual temperature during the trend check delay
+            that is still treated as "not falling". A larger drop cancels the
+            recalibration.
+          default: 0.2
+          selector:
+            number:
+              min: 0
+              max: 2
+              step: 0.1
+              unit_of_measurement: K
+              mode: box
+    notification_section:
+      name: Notification
+      icon: mdi:bell
+      collapsed: true
+      input:
+        notify_device:
+          name: Mobile app device (optional)
+          description: >-
+            Device of the Home Assistant Companion app that receives a push
+            message when a recalibration is started. Leave empty for no
+            notification.
+          default: ""
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+        notification_title:
+          name: Notification title
+          default: Thermostat calibration
+          selector:
+            text:
+        notification_message:
+          name: Notification message
+          description: >-
+            Templates are allowed. Available variable: climate_entity.
+          default: >-
+            Recalibration started for
+            {{ state_attr(climate_entity, 'friendly_name') }}. Actual
+            {{ state_attr(climate_entity, 'current_temperature') }} °C, target
+            {{ state_attr(climate_entity, 'temperature') }} °C.
+          selector:
+            text:
+              multiline: true
+
+mode: single
+max_exceeded: silent
+
+trigger_variables:
+  climate_entity: !input climate_entity
+  threshold: !input threshold
+
+variables:
+  climate_entity: !input climate_entity
+  threshold: !input threshold
+  trend_tolerance: !input trend_tolerance
+  notify_device: !input notify_device
+
+triggers:
+  - alias: Room too warm compared to target temperature
+    trigger: template
+    value_template: >-
+      {% set c = state_attr(climate_entity, 'current_temperature') %}
+      {% set t = state_attr(climate_entity, 'temperature') %}
+      {{ is_number(c) and is_number(t)
+         and (c | float - t | float) >= (threshold | float)
+         and not is_state(climate_entity, 'off') }}
+    for: !input over_temp_duration
+
+conditions: []
+
+actions:
+  - alias: Remember actual temperature
+    variables:
+      temp_start: >-
+        {{ state_attr(climate_entity, 'current_temperature') | float(0) }}
+  - alias: Wait for trend check
+    delay: !input trend_wait
+  - alias: Still too warm and temperature not falling
+    condition: template
+    value_template: >-
+      {% set c = state_attr(climate_entity, 'current_temperature') | float(0) %}
+      {% set t = state_attr(climate_entity, 'temperature') | float(0) %}
+      {{ (c - t) >= (threshold | float)
+         and c >= ((temp_start | float(0)) - (trend_tolerance | float))
+         and not is_state(climate_entity, 'off') }}
+  - alias: Send notification
+    if:
+      - condition: template
+        value_template: "{{ notify_device | string | length > 0 }}"
+    then:
+      - device_id: !input notify_device
+        domain: mobile_app
+        type: notify
+        title: !input notification_title
+        message: !input notification_message
+  - alias: Start calibration
+    action: button.press
+    target:
+      entity_id: !input calibration_buttons
